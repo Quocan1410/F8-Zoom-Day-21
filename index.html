@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    
+    <!-- SEO & Performance Meta -->
+    <meta name="description" content="F8 Zoom Day 21 - Học Array Methods với Custom Implementation. So sánh code gốc vs rebuild với 30+ phương thức Array.prototype">
+    <meta name="keywords" content="JavaScript, Array methods, F8, programming, custom implementation, at, map, filter, reduce">
+    <meta name="author" content="F8 Education">
+    <meta name="robots" content="index, follow">
+    <meta name="theme-color" content="#1a1b23">
+    
+    <!-- Open Graph Meta -->
+    <meta property="og:title" content="F8 Zoom Day 21 - Custom Array Methods">
+    <meta property="og:description" content="Học và thực hành các phương thức Array.prototype với implementation tự viết">
+    <meta property="og:type" content="website">
+    
+    <title>F8 Zoom Day 21 - Custom Array Methods</title>
+    
+    <!-- Preload Critical Resources -->
+    <link rel="preload" href="styles.css" as="style">
+    <link rel="preload" href="main.js" as="script">
+    
+    <!-- Critical CSS First -->
+    <link rel="stylesheet" href="styles.css">
+    
+    <!-- Defer Non-Critical JavaScript -->
+    <script src="https://cdn.tailwindcss.com" async></script>
+</head>
+<body class="bg-gray-50" data-theme="dark">
+    <!-- Skip to main content for accessibility -->
+    <a href="#main-content" class="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 bg-blue-600 text-white px-4 py-2 rounded">Skip to main content</a>
+    
+    <!-- Main page header -->
+    <header class="bg-white shadow-sm border-b border-gray-200 px-6 py-4" role="banner">
+        <div class="flex justify-between items-center">
+            <div>
+                <h1 class="text-2xl font-bold text-gray-900">F8 Zoom Day 21</h1>
+                <p class="text-gray-600 mt-1">Tất cả Array.prototype Methods với Custom Implementation</p>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main content area -->
+    <main class="flex" style="height: calc(100vh - 73px);" role="main" id="main-content">
+        <!-- Sidebar: Methods navigation -->
+        <aside class="sidebar-container w-56 bg-white border-r border-gray-200 flex flex-col" role="navigation" aria-label="Danh sách phương thức Array">
+            <div class="title-section px-4 py-4 border-b border-gray-200 flex-shrink-0">
+                <h2 class="text-lg font-semibold text-gray-900 leading-tight">Phương Thức</h2>
+                <p class="text-gray-600 mt-1 text-xs leading-tight">Click để xem bài làm</p>
+            </div>
+            <nav id="methodsList" class="content-area p-4 pb-6 flex-1 overflow-y-auto" aria-label="Danh sách các phương thức Array">
+                <!-- Loading state -->
+                <div id="methods-loading" class="text-center py-8">
+                    <div class="animate-pulse text-gray-400">⚡ Đang tải...</div>
+                </div>
+            </nav>
+        </aside>
+
+        <!-- Main content: Exercise display -->
+        <section class="main-container flex-1 bg-white flex flex-col" role="main">
+            <div class="title-section px-4 py-4 border-b border-gray-200 flex-shrink-0">
+                <h2 class="text-lg font-semibold text-gray-900 leading-tight">Bài Làm</h2>
+                <p class="text-gray-600 mt-1 text-xs leading-tight">So sánh phương thức gốc và rebuild</p>
+            </div>
+            <div id="exerciseDisplay" class="content-area p-4 pb-6 flex-1 overflow-y-auto" role="region" aria-label="Khu vực hiển thị bài tập" aria-live="polite">
+                <!-- Loading state -->
+                <div id="exercise-loading" class="text-center py-12">
+                    <div class="animate-pulse text-gray-400 text-4xl mb-4">⚡</div>
+                    <p class="text-gray-500">Đang tải nội dung...</p>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- JavaScript - Defer for better loading -->
+    <script src="main.js" defer></script>
+</body>
+</html> 
