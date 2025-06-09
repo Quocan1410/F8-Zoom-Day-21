@@ -1,31 +1,25 @@
-// Theme Management moved to theme.js
-
-// ====================================================================
-// ARRAY METHODS WITH ORIGINAL AND REBUILD VERSIONS
-// ====================================================================
-
-// Implementation của các phương thức rebuild
 const rebuildImplementations = {
     'at': `Array.prototype.at2 = function(index) {
     const length = this.length;
-    const normalizedIndex = index < 0 ? length + index : index;
     
-    if (normalizedIndex < 0 || normalizedIndex >= length) {
+    if (index < 0) {
+        index = length + index;
+    }
+    
+    if (index < 0 || index >= length) {
         return undefined;
     }
     
-    return this[normalizedIndex];
+    return this[index];
 };`,
-    
+
     'concat': `Array.prototype.concat2 = function(...args) {
     const result = [];
     
-    // Thêm các phần tử từ mảng hiện tại
     for (let i = 0; i < this.length; i++) {
         result[result.length] = this[i];
     }
     
-    // Thêm các argument
     for (const arg of args) {
         if (Array.isArray(arg)) {
             for (let i = 0; i < arg.length; i++) {
@@ -42,7 +36,6 @@ const rebuildImplementations = {
     'copyWithin': `Array.prototype.copyWithin2 = function(target, start = 0, end = this.length) {
     const length = this.length;
     
-    // Chuẩn hóa các index
     const normalizedTarget = target < 0 ? Math.max(length + target, 0) : Math.min(target, length);
     const normalizedStart = start < 0 ? Math.max(length + start, 0) : Math.min(start, length);
     const normalizedEnd = end < 0 ? Math.max(length + end, 0) : Math.min(end, length);
@@ -50,7 +43,6 @@ const rebuildImplementations = {
     const count = Math.min(normalizedEnd - normalizedStart, length - normalizedTarget);
     
     if (count > 0) {
-        // Copy elements
         const temp = [];
         for (let i = 0; i < count; i++) {
             temp[i] = this[normalizedStart + i];
@@ -259,12 +251,10 @@ const rebuildImplementations = {
     'includes': `Array.prototype.includes2 = function(searchElement, fromIndex = 0) {
     const length = this.length;
     
-    if (length === 0) return false;
+    let start = fromIndex < 0 ? Math.max(length + fromIndex, 0) : fromIndex;
     
-    const startIndex = fromIndex < 0 ? Math.max(0, length + fromIndex) : fromIndex;
-    
-    for (let i = startIndex; i < length; i++) {
-        if (this[i] === searchElement || (Number.isNaN(searchElement) && Number.isNaN(this[i]))) {
+    for (let i = start; i < length; i++) {
+        if (this[i] === searchElement || (Number.isNaN(this[i]) && Number.isNaN(searchElement))) {
             return true;
         }
     }
@@ -275,12 +265,10 @@ const rebuildImplementations = {
     'indexOf': `Array.prototype.indexOf2 = function(searchElement, fromIndex = 0) {
     const length = this.length;
     
-    if (length === 0) return -1;
+    let start = fromIndex < 0 ? Math.max(length + fromIndex, 0) : fromIndex;
     
-    const startIndex = fromIndex < 0 ? Math.max(0, length + fromIndex) : fromIndex;
-    
-    for (let i = startIndex; i < length; i++) {
-        if (this[i] === searchElement) {
+    for (let i = start; i < length; i++) {
+        if (i in this && this[i] === searchElement) {
             return i;
         }
     }
@@ -289,18 +277,16 @@ const rebuildImplementations = {
 };`,
 
     'join': `Array.prototype.join2 = function(separator = ',') {
-    const length = this.length;
-    
-    if (length === 0) return '';
+    if (this.length === 0) return '';
     
     let result = '';
     
-    for (let i = 0; i < length; i++) {
+    for (let i = 0; i < this.length; i++) {
         if (i > 0) {
             result += separator;
         }
         
-        if (this[i] != null) {
+        if (this[i] !== null && this[i] !== undefined) {
             result += String(this[i]);
         }
     }
@@ -326,12 +312,10 @@ const rebuildImplementations = {
     'lastIndexOf': `Array.prototype.lastIndexOf2 = function(searchElement, fromIndex = this.length - 1) {
     const length = this.length;
     
-    if (length === 0) return -1;
+    let start = fromIndex < 0 ? length + fromIndex : Math.min(fromIndex, length - 1);
     
-    const startIndex = fromIndex < 0 ? length + fromIndex : Math.min(fromIndex, length - 1);
-    
-    for (let i = startIndex; i >= 0; i--) {
-        if (this[i] === searchElement) {
+    for (let i = start; i >= 0; i--) {
+        if (i in this && this[i] === searchElement) {
             return i;
         }
     }
@@ -344,7 +328,7 @@ const rebuildImplementations = {
         throw new TypeError('callback must be a function');
     }
     
-    const result = [];
+    const result = new Array(this.length);
     const length = this.length;
     
     for (let i = 0; i < length; i++) {
@@ -364,16 +348,20 @@ const rebuildImplementations = {
     }
     
     const element = this[length - 1];
+    delete this[length - 1];
     this.length = length - 1;
     
     return element;
 };`,
 
     'push': `Array.prototype.push2 = function(...elements) {
+    let length = this.length;
+    
     for (let i = 0; i < elements.length; i++) {
-        this[this.length] = elements[i];
+        this[length + i] = elements[i];
     }
     
+    this.length = length + elements.length;
     return this.length;
 };`,
 
@@ -383,26 +371,28 @@ const rebuildImplementations = {
     }
     
     const length = this.length;
-    let hasInitialValue = arguments.length >= 2;
-    let accumulator = initialValue;
-    let startIndex = 0;
+    let accumulator;
+    let startIndex;
     
-    if (!hasInitialValue) {
+    if (arguments.length >= 2) {
+        accumulator = initialValue;
+        startIndex = 0;
+    } else {
         if (length === 0) {
             throw new TypeError('Reduce of empty array with no initial value');
         }
         
-        // Tìm phần tử đầu tiên tồn tại
-        while (startIndex < length && !(startIndex in this)) {
-            startIndex++;
+        for (let i = 0; i < length; i++) {
+            if (i in this) {
+                accumulator = this[i];
+                startIndex = i + 1;
+                break;
+            }
         }
         
-        if (startIndex >= length) {
+        if (startIndex === undefined) {
             throw new TypeError('Reduce of empty array with no initial value');
         }
-        
-        accumulator = this[startIndex];
-        startIndex++;
     }
     
     for (let i = startIndex; i < length; i++) {
@@ -420,26 +410,28 @@ const rebuildImplementations = {
     }
     
     const length = this.length;
-    let hasInitialValue = arguments.length >= 2;
-    let accumulator = initialValue;
-    let startIndex = length - 1;
+    let accumulator;
+    let startIndex;
     
-    if (!hasInitialValue) {
+    if (arguments.length >= 2) {
+        accumulator = initialValue;
+        startIndex = length - 1;
+    } else {
         if (length === 0) {
-            throw new TypeError('Reduce of empty array with no initial value');
+            throw new TypeError('ReduceRight of empty array with no initial value');
         }
         
-        // Tìm phần tử cuối cùng tồn tại
-        while (startIndex >= 0 && !(startIndex in this)) {
-            startIndex--;
+        for (let i = length - 1; i >= 0; i--) {
+            if (i in this) {
+                accumulator = this[i];
+                startIndex = i - 1;
+                break;
+            }
         }
         
-        if (startIndex < 0) {
-            throw new TypeError('Reduce of empty array with no initial value');
+        if (startIndex === undefined) {
+            throw new TypeError('ReduceRight of empty array with no initial value');
         }
-        
-        accumulator = this[startIndex];
-        startIndex--;
     }
     
     for (let i = startIndex; i >= 0; i--) {
@@ -453,9 +445,8 @@ const rebuildImplementations = {
 
     'reverse': `Array.prototype.reverse2 = function() {
     const length = this.length;
-    const middle = Math.floor(length / 2);
     
-    for (let i = 0; i < middle; i++) {
+    for (let i = 0; i < Math.floor(length / 2); i++) {
         const temp = this[i];
         this[i] = this[length - 1 - i];
         this[length - 1 - i] = temp;
@@ -473,11 +464,11 @@ const rebuildImplementations = {
     
     const firstElement = this[0];
     
-    // Dịch chuyển tất cả phần tử về trước
     for (let i = 1; i < length; i++) {
         this[i - 1] = this[i];
     }
     
+    delete this[length - 1];
     this.length = length - 1;
     
     return firstElement;
@@ -486,8 +477,8 @@ const rebuildImplementations = {
     'slice': `Array.prototype.slice2 = function(start = 0, end = this.length) {
     const length = this.length;
     
-    const normalizedStart = start < 0 ? Math.max(0, length + start) : Math.min(start, length);
-    const normalizedEnd = end < 0 ? Math.max(0, length + end) : Math.min(end, length);
+    const normalizedStart = start < 0 ? Math.max(length + start, 0) : Math.min(start, length);
+    const normalizedEnd = end < 0 ? Math.max(length + end, 0) : Math.min(end, length);
     
     const result = [];
     
@@ -518,21 +509,22 @@ const rebuildImplementations = {
     return false;
 };`,
 
-    'sort': `Array.prototype.sort2 = function(compareFn) {
+    'sort': `Array.prototype.sort2 = function(compareFunction) {
     const length = this.length;
     
-    // Bubble sort implementation
+    if (length <= 1) return this;
+    
+    const compare = compareFunction || ((a, b) => {
+        const aString = String(a);
+        const bString = String(b);
+        if (aString < bString) return -1;
+        if (aString > bString) return 1;
+        return 0;
+    });
+    
     for (let i = 0; i < length - 1; i++) {
-        for (let j = 0; j < length - i - 1; j++) {
-            let shouldSwap = false;
-            
-            if (compareFn) {
-                shouldSwap = compareFn(this[j], this[j + 1]) > 0;
-            } else {
-                shouldSwap = String(this[j]) > String(this[j + 1]);
-            }
-            
-            if (shouldSwap) {
+        for (let j = 0; j < length - 1 - i; j++) {
+            if (compare(this[j], this[j + 1]) > 0) {
                 const temp = this[j];
                 this[j] = this[j + 1];
                 this[j + 1] = temp;
@@ -545,75 +537,88 @@ const rebuildImplementations = {
 
     'splice': `Array.prototype.splice2 = function(start, deleteCount = this.length - start, ...items) {
     const length = this.length;
-    const normalizedStart = start < 0 ? Math.max(0, length + start) : Math.min(start, length);
-    const actualDeleteCount = Math.min(Math.max(0, deleteCount), length - normalizedStart);
+    const actualStart = start < 0 ? Math.max(length + start, 0) : Math.min(start, length);
+    const actualDeleteCount = Math.max(0, Math.min(deleteCount, length - actualStart));
     
-    // Lưu các phần tử bị xóa
     const deletedElements = [];
+    
     for (let i = 0; i < actualDeleteCount; i++) {
-        deletedElements[i] = this[normalizedStart + i];
+        deletedElements[i] = this[actualStart + i];
     }
     
     const itemCount = items.length;
-    const newLength = length - actualDeleteCount + itemCount;
+    const delta = itemCount - actualDeleteCount;
     
-    if (itemCount < actualDeleteCount) {
-        // Dịch chuyển phần tử về trước
-        for (let i = normalizedStart + itemCount; i < newLength; i++) {
-            this[i] = this[i + actualDeleteCount - itemCount];
+    if (delta > 0) {
+        for (let i = length - 1; i >= actualStart + actualDeleteCount; i--) {
+            this[i + delta] = this[i];
         }
-    } else if (itemCount > actualDeleteCount) {
-        // Dịch chuyển phần tử về sau
-        for (let i = newLength - 1; i >= normalizedStart + itemCount; i--) {
-            this[i] = this[i - itemCount + actualDeleteCount];
+    } else if (delta < 0) {
+        for (let i = actualStart + actualDeleteCount; i < length; i++) {
+            this[i + delta] = this[i];
         }
     }
     
-    // Chèn các phần tử mới
     for (let i = 0; i < itemCount; i++) {
-        this[normalizedStart + i] = items[i];
+        this[actualStart + i] = items[i];
     }
     
-    this.length = newLength;
+    this.length = length + delta;
     
     return deletedElements;
 };`,
 
-    'toLocaleString': `Array.prototype.toLocaleString2 = function(locales, options) {
-    const length = this.length;
+    'toReversed': `Array.prototype.toReversed2 = function() {
     const result = [];
     
-    for (let i = 0; i < length; i++) {
+    for (let i = this.length - 1; i >= 0; i--) {
         if (i in this) {
-            if (this[i] != null && typeof this[i].toLocaleString === 'function') {
-                result[i] = this[i].toLocaleString(locales, options);
-            } else {
-                result[i] = String(this[i]);
-            }
+            result[result.length] = this[i];
         }
     }
     
-    return result.join(',');
+    return result;
 };`,
 
-    'toString': `Array.prototype.toString2 = function() {
-    return this.join2 ? this.join2(',') : this.join(',');
+    'toSorted': `Array.prototype.toSorted2 = function(compareFunction) {
+    const result = [];
+    
+    for (let i = 0; i < this.length; i++) {
+        if (i in this) {
+            result[i] = this[i];
+        }
+    }
+    
+    return result.sort2 ? result.sort2(compareFunction) : result.sort(compareFunction);
+};`,
+
+    'toSpliced': `Array.prototype.toSpliced2 = function(start, deleteCount = this.length - start, ...items) {
+    const result = [];
+    
+    for (let i = 0; i < this.length; i++) {
+        if (i in this) {
+            result[i] = this[i];
+        }
+    }
+    
+    result.splice2 ? result.splice2(start, deleteCount, ...items) : result.splice(start, deleteCount, ...items);
+    
+    return result;
 };`,
 
     'unshift': `Array.prototype.unshift2 = function(...elements) {
-    const elementCount = elements.length;
-    const originalLength = this.length;
+    const elementsLength = elements.length;
+    const currentLength = this.length;
     
-    // Dịch chuyển tất cả phần tử hiện tại về sau
-    for (let i = originalLength - 1; i >= 0; i--) {
-        this[i + elementCount] = this[i];
+    for (let i = currentLength - 1; i >= 0; i--) {
+        this[i + elementsLength] = this[i];
     }
     
-    // Thêm các phần tử mới vào đầu
-    for (let i = 0; i < elementCount; i++) {
+    for (let i = 0; i < elementsLength; i++) {
         this[i] = elements[i];
     }
     
+    this.length = currentLength + elementsLength;
     return this.length;
 };`,
 
@@ -637,13 +642,15 @@ const rebuildImplementations = {
     const normalizedIndex = index < 0 ? length + index : index;
     
     if (normalizedIndex < 0 || normalizedIndex >= length) {
-        throw new RangeError('Index out of range');
+        throw new RangeError('Invalid index');
     }
     
     const result = [];
     
     for (let i = 0; i < length; i++) {
-        result[i] = i === normalizedIndex ? value : this[i];
+        if (i in this) {
+            result[i] = i === normalizedIndex ? value : this[i];
+        }
     }
     
     return result;
@@ -1584,18 +1591,12 @@ const result = negativeWith.with(-1, 'last');`,
     }
 ];
 
-// ====================================================================
-// UI RENDERING FUNCTIONS
-// ====================================================================
-
 let currentSelectedMethod = 0;
-let methodValidationStatus = {}; // Track validation status for each method
+let methodValidationStatus = {};
 
 function initializeApplication() {
-    // Hide loading states
+    currentSelectedMethod = 0;
     hideLoadingStates();
-    
-    // Render content
     renderMethodsList();
     renderExerciseDisplay();
 }
@@ -1604,8 +1605,14 @@ function hideLoadingStates() {
     const methodsLoading = document.getElementById('methods-loading');
     const exerciseLoading = document.getElementById('exercise-loading');
     
-    if (methodsLoading) methodsLoading.style.display = 'none';
-    if (exerciseLoading) exerciseLoading.style.display = 'none';
+    if (methodsLoading) {
+        methodsLoading.style.display = 'none';
+        methodsLoading.remove();
+    }
+    if (exerciseLoading) {
+        exerciseLoading.style.display = 'none';
+        exerciseLoading.remove();
+    }
 }
 
 function renderMethodsList() {
@@ -1648,13 +1655,9 @@ function selectMethod(methodIndex) {
 }
 
 function checkResult(isCorrect, methodIndex) {
-    // Lưu trạng thái validation
     methodValidationStatus[methodIndex] = isCorrect;
-    
-    // Re-render sidebar để hiển thị status icon
     renderMethodsList();
     
-    // Animation cho button vừa được đánh giá
     setTimeout(() => {
         const methodButtons = document.querySelectorAll('.method-btn');
         const targetButton = methodButtons[methodIndex];
@@ -1678,12 +1681,17 @@ function checkResult(isCorrect, methodIndex) {
 function renderExerciseDisplay() {
     const exerciseDisplayContainer = document.getElementById('exerciseDisplay');
     
+    if (!exerciseDisplayContainer) {
+        return;
+    }
+    
     const selectedMethodData = arrayMethodsData[currentSelectedMethod];
     
-    // Tạo tên method rebuild (ví dụ: at() -> at2)
-    const rebuildMethodName = selectedMethodData.methodName.replace('()', '2()');
+    if (!selectedMethodData) {
+        return;
+    }
     
-    // Implementation section - hiển thị một lần duy nhất
+    const rebuildMethodName = selectedMethodData.methodName.replace('()', '2()');
     const implementationHTML = `
         <div class="mb-6 p-5 bg-blue-50 rounded-lg border border-blue-200">
             <div class="flex items-center justify-between mb-3">
@@ -1708,7 +1716,6 @@ function renderExerciseDisplay() {
     `;
     
     const testCasesHTML = Object.entries(selectedMethodData.testCases).map(([caseType, testCaseData]) => {
-        // Custom badge styling nhẹ nhàng với tông màu pastel
         const badgeConfig = {
             'basic': {
                 classes: 'bg-green-50 text-green-700 border border-green-200 hover:bg-green-100'
@@ -1723,7 +1730,6 @@ function renderExerciseDisplay() {
         
         const currentBadge = badgeConfig[caseType] || badgeConfig['basic'];
         
-        // Tạo code cho rebuild method (thay tên method gốc thành method2)
         const rebuildCode = testCaseData.code.replace(
             new RegExp(`\\.${selectedMethodData.methodName.replace('()', '')}\\(`, 'g'),
             `.${selectedMethodData.methodName.replace('()', '2')}(`
@@ -1739,7 +1745,7 @@ function renderExerciseDisplay() {
                     </div>
                 </div>
                 
-                <!-- Container 2 cột với validation -->
+                <!-- Container 2 cột -->
                 <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
                     <!-- Cột 1: Phương thức rebuild -->
                     <div class="comparison-column p-5 bg-gray-50 rounded-lg border border-gray-200 flex flex-col h-full">
@@ -1814,43 +1820,23 @@ function renderExerciseDisplay() {
     `;
 }
 
-// ====================================================================
-// APPLICATION INITIALIZATION
-// ====================================================================
-
-// Performance monitoring
-const perfObserver = new PerformanceObserver((list) => {
-    for (const entry of list.getEntries()) {
-        if (entry.entryType === 'measure') {
-            console.log(`${entry.name}: ${entry.duration.toFixed(2)}ms`);
-        }
+function tryInitialization() {
+    const exerciseDisplay = document.getElementById('exerciseDisplay');
+    const methodsList = document.getElementById('methodsList');
+    
+    if (exerciseDisplay && methodsList) {
+        initializeApplication();
+        return true;
     }
-});
-
-if ('PerformanceObserver' in window) {
-    perfObserver.observe({ entryTypes: ['measure'] });
+    return false;
 }
 
-// Optimized initialization
-document.addEventListener('DOMContentLoaded', function() {
-    performance.mark('app-init-start');
-    
-    // Use requestAnimationFrame for smooth rendering
-    requestAnimationFrame(() => {
-        initializeApplication();
-        performance.mark('app-init-end');
-        performance.measure('app-initialization', 'app-init-start', 'app-init-end');
-    });
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', tryInitialization);
+} else {
+    tryInitialization();
+}
+
+window.addEventListener('load', function() {
+    setTimeout(tryInitialization, 50);
 });
-
-// Preload critical data
-const preloadCriticalData = () => {
-    // Preload first method data for instant display
-    if (arrayMethodsData.length > 0) {
-        const firstMethod = arrayMethodsData[0];
-        // Data is already in memory, so this is instantaneous
-    }
-};
-
-// Call preload immediately
-preloadCriticalData();
