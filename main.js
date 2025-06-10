@@ -1,20 +1,35 @@
 const rebuildImplementations = {
     'at': `Array.prototype.at2 = function(index) {
-    index = index < 0 ? this.length + index : index;
-    return index >= 0 && index < this.length ? this[index] : undefined;
+    const length = this.length;
+    const normalizedIndex = index < 0 ? length + index : index;
+    return normalizedIndex >= 0 && normalizedIndex < length ? this[normalizedIndex] : undefined;
 };`,
 
     'concat': `Array.prototype.concat2 = function(...args) {
-    const result = [...this];
-    for (const arg of args) {
-        Array.isArray(arg) ? result.push(...arg) : result.push(arg);
+    const length = this.length;
+    const result = [];
+    
+    for (let i = 0; i < length; i++) {
+        if (i in this) {
+            result[i] = this[i];
+        }
     }
+    
+    for (let i = 0; i < args.length; i++) {
+        if (Array.isArray(args[i])) {
+            for (let j = 0; j < args[i].length; j++) {
+                result[result.length] = args[i][j];
+            }
+        } else {
+            result[result.length] = args[i];
+        }
+    }
+    
     return result;
 };`,
 
     'copyWithin': `Array.prototype.copyWithin2 = function(target, start = 0, end = this.length) {
     const length = this.length;
-    
     const normalizedTarget = target < 0 ? Math.max(length + target, 0) : Math.min(target, length);
     const normalizedStart = start < 0 ? Math.max(length + start, 0) : Math.min(start, length);
     const normalizedEnd = end < 0 ? Math.max(length + end, 0) : Math.min(end, length);
@@ -35,134 +50,134 @@ const rebuildImplementations = {
 };`,
 
     'entries': `Array.prototype.entries2 = function() {
+    const length = this.length;
     const result = [];
-    for (let i = 0; i < this.length; i++) {
+    
+    for (let i = 0; i < length; i++) {
         result[i] = [i, this[i]];
     }
+    
     return result;
 };`,
 
     'every': `Array.prototype.every2 = function(callback, thisArg) {
-    if (typeof callback !== 'function') {
-        throw new TypeError('callback must be a function');
-    }
+    const length = this.length;
     
-    for (let i = 0; i < this.length; i++) {
+    for (let i = 0; i < length; i++) {
         if (i in this && !callback.call(thisArg, this[i], i, this)) {
             return false;
         }
     }
+    
     return true;
 };`,
 
     'fill': `Array.prototype.fill2 = function(value, start = 0, end = this.length) {
-    const len = this.length;
-    const from = start < 0 ? Math.max(len + start, 0) : Math.min(start, len);
-    const to = end < 0 ? Math.max(len + end, 0) : Math.min(end, len);
+    const length = this.length;
+    const from = start < 0 ? Math.max(length + start, 0) : Math.min(start, length);
+    const to = end < 0 ? Math.max(length + end, 0) : Math.min(end, length);
     
     for (let i = from; i < to; i++) {
         this[i] = value;
     }
+    
     return this;
 };`,
 
     'filter': `Array.prototype.filter2 = function(callback, thisArg) {
-    if (typeof callback !== 'function') {
-        throw new TypeError('callback must be a function');
-    }
-    
+    const length = this.length;
     const result = [];
-    for (let i = 0; i < this.length; i++) {
+    
+    for (let i = 0; i < length; i++) {
         if (i in this && callback.call(thisArg, this[i], i, this)) {
-            result.push(this[i]);
+            result[result.length] = this[i];
         }
     }
+    
     return result;
 };`,
 
     'find': `Array.prototype.find2 = function(callback, thisArg) {
-    if (typeof callback !== 'function') {
-        throw new TypeError('callback must be a function');
-    }
+    const length = this.length;
     
-    for (let i = 0; i < this.length; i++) {
+    for (let i = 0; i < length; i++) {
         if (i in this && callback.call(thisArg, this[i], i, this)) {
             return this[i];
         }
     }
+    
     return undefined;
 };`,
 
     'findIndex': `Array.prototype.findIndex2 = function(callback, thisArg) {
-    if (typeof callback !== 'function') {
-        throw new TypeError('callback must be a function');
-    }
+    const length = this.length;
     
-    for (let i = 0; i < this.length; i++) {
+    for (let i = 0; i < length; i++) {
         if (i in this && callback.call(thisArg, this[i], i, this)) {
             return i;
         }
     }
+    
     return -1;
 };`,
 
     'findLast': `Array.prototype.findLast2 = function(callback, thisArg) {
-    if (typeof callback !== 'function') {
-        throw new TypeError('callback must be a function');
-    }
+    const length = this.length;
     
-    for (let i = this.length - 1; i >= 0; i--) {
+    for (let i = length - 1; i >= 0; i--) {
         if (i in this && callback.call(thisArg, this[i], i, this)) {
             return this[i];
         }
     }
+    
     return undefined;
 };`,
 
     'findLastIndex': `Array.prototype.findLastIndex2 = function(callback, thisArg) {
-    if (typeof callback !== 'function') {
-        throw new TypeError('callback must be a function');
-    }
+    const length = this.length;
     
-    for (let i = this.length - 1; i >= 0; i--) {
+    for (let i = length - 1; i >= 0; i--) {
         if (i in this && callback.call(thisArg, this[i], i, this)) {
             return i;
         }
     }
+    
     return -1;
 };`,
 
     'flat': `Array.prototype.flat2 = function(depth = 1) {
-    const flatten = (arr, d) => {
-        const result = [];
-        for (let i = 0; i < arr.length; i++) {
-            if (i in arr) {
-                Array.isArray(arr[i]) && d > 0 
-                    ? result.push(...flatten(arr[i], d - 1))
-                    : result.push(arr[i]);
+    const length = this.length;
+    const result = [];
+    
+    for (let i = 0; i < length; i++) {
+        if (i in this) {
+            if (Array.isArray(this[i]) && depth > 0) {
+                const flattened = this[i].flat2(depth - 1);
+                for (let j = 0; j < flattened.length; j++) {
+                    result[result.length] = flattened[j];
+                }
+            } else {
+                result[result.length] = this[i];
             }
         }
-        return result;
-    };
-    
-    return flatten(this, depth === Infinity ? Number.MAX_SAFE_INTEGER : depth);
-}`,
-
-    'flatMap': `Array.prototype.flatMap2 = function(callback, thisArg) {
-    if (typeof callback !== 'function') {
-        throw new TypeError('callback must be a function');
     }
     
-    const result = [];
+    return result;
+};`,
+
+    'flatMap': `Array.prototype.flatMap2 = function(callback, thisArg) {
     const length = this.length;
+    const result = [];
     
     for (let i = 0; i < length; i++) {
         if (i in this) {
             const mapped = callback.call(thisArg, this[i], i, this);
             if (Array.isArray(mapped)) {
-                result.push(...mapped);
+                for (let j = 0; j < mapped.length; j++) {
+                    result[result.length] = mapped[j];
+                }
             } else {
-                result.push(mapped);
+                result[result.length] = mapped;
             }
         }
     }
@@ -171,10 +186,6 @@ const rebuildImplementations = {
 };`,
 
     'forEach': `Array.prototype.forEach2 = function(callback, thisArg) {
-    if (typeof callback !== 'function') {
-        throw new TypeError('callback must be a function');
-    }
-    
     const length = this.length;
     
     for (let i = 0; i < length; i++) {
@@ -186,8 +197,7 @@ const rebuildImplementations = {
 
     'includes': `Array.prototype.includes2 = function(searchElement, fromIndex = 0) {
     const length = this.length;
-    
-    let start = fromIndex < 0 ? Math.max(length + fromIndex, 0) : fromIndex;
+    const start = fromIndex < 0 ? Math.max(length + fromIndex, 0) : fromIndex;
     
     for (let i = start; i < length; i++) {
         if (this[i] === searchElement || (Number.isNaN(this[i]) && Number.isNaN(searchElement))) {
@@ -200,8 +210,7 @@ const rebuildImplementations = {
 
     'indexOf': `Array.prototype.indexOf2 = function(searchElement, fromIndex = 0) {
     const length = this.length;
-    
-    let start = fromIndex < 0 ? Math.max(length + fromIndex, 0) : fromIndex;
+    const start = fromIndex < 0 ? Math.max(length + fromIndex, 0) : fromIndex;
     
     for (let i = start; i < length; i++) {
         if (i in this && this[i] === searchElement) {
@@ -213,11 +222,12 @@ const rebuildImplementations = {
 };`,
 
     'join': `Array.prototype.join2 = function(separator = ',') {
-    if (this.length === 0) return '';
+    const length = this.length;
+    if (length === 0) return '';
     
     let result = '';
     
-    for (let i = 0; i < this.length; i++) {
+    for (let i = 0; i < length; i++) {
         if (i > 0) {
             result += separator;
         }
@@ -231,13 +241,12 @@ const rebuildImplementations = {
 };`,
 
     'keys': `Array.prototype.keys2 = function() {
-    const arr = this;
+    const length = this.length;
     let index = 0;
     
     return {
-        [Symbol.iterator]() { return this; },
         next() {
-            if (index < arr.length) {
+            if (index < length) {
                 return { value: index++, done: false };
             }
             return { done: true };
@@ -247,8 +256,7 @@ const rebuildImplementations = {
 
     'lastIndexOf': `Array.prototype.lastIndexOf2 = function(searchElement, fromIndex = this.length - 1) {
     const length = this.length;
-    
-    let start = fromIndex < 0 ? length + fromIndex : Math.min(fromIndex, length - 1);
+    const start = fromIndex < 0 ? length + fromIndex : Math.min(fromIndex, length - 1);
     
     for (let i = start; i >= 0; i--) {
         if (i in this && this[i] === searchElement) {
@@ -260,12 +268,8 @@ const rebuildImplementations = {
 };`,
 
     'map': `Array.prototype.map2 = function(callback, thisArg) {
-    if (typeof callback !== 'function') {
-        throw new TypeError('callback must be a function');
-    }
-    
-    const result = new Array(this.length);
     const length = this.length;
+    const result = new Array(length);
     
     for (let i = 0; i < length; i++) {
         if (i in this) {
@@ -291,7 +295,7 @@ const rebuildImplementations = {
 };`,
 
     'push': `Array.prototype.push2 = function(...elements) {
-    let length = this.length;
+    const length = this.length;
     
     for (let i = 0; i < elements.length; i++) {
         this[length + i] = elements[i];
@@ -302,33 +306,27 @@ const rebuildImplementations = {
 };`,
 
     'reduce': `Array.prototype.reduce2 = function(callback, initialValue) {
-    if (typeof callback !== 'function') {
-        throw new TypeError('callback must be a function');
-    }
-    
     const length = this.length;
     let accumulator;
-    let startIndex;
+    let startIndex = 0;
     
     if (arguments.length >= 2) {
         accumulator = initialValue;
-        startIndex = 0;
     } else {
         if (length === 0) {
             throw new TypeError('Reduce of empty array with no initial value');
         }
         
-        for (let i = 0; i < length; i++) {
-            if (i in this) {
-                accumulator = this[i];
-                startIndex = i + 1;
-                break;
-            }
+        while (startIndex < length && !(startIndex in this)) {
+            startIndex++;
         }
         
-        if (startIndex === undefined) {
+        if (startIndex >= length) {
             throw new TypeError('Reduce of empty array with no initial value');
         }
+        
+        accumulator = this[startIndex];
+        startIndex++;
     }
     
     for (let i = startIndex; i < length; i++) {
@@ -341,33 +339,27 @@ const rebuildImplementations = {
 };`,
 
     'reduceRight': `Array.prototype.reduceRight2 = function(callback, initialValue) {
-    if (typeof callback !== 'function') {
-        throw new TypeError('callback must be a function');
-    }
-    
     const length = this.length;
     let accumulator;
-    let startIndex;
+    let startIndex = length - 1;
     
     if (arguments.length >= 2) {
         accumulator = initialValue;
-        startIndex = length - 1;
     } else {
         if (length === 0) {
             throw new TypeError('ReduceRight of empty array with no initial value');
         }
         
-        for (let i = length - 1; i >= 0; i--) {
-            if (i in this) {
-                accumulator = this[i];
-                startIndex = i - 1;
-                break;
-            }
+        while (startIndex >= 0 && !(startIndex in this)) {
+            startIndex--;
         }
         
-        if (startIndex === undefined) {
+        if (startIndex < 0) {
             throw new TypeError('ReduceRight of empty array with no initial value');
         }
+        
+        accumulator = this[startIndex];
+        startIndex--;
     }
     
     for (let i = startIndex; i >= 0; i--) {
@@ -412,10 +404,8 @@ const rebuildImplementations = {
 
     'slice': `Array.prototype.slice2 = function(start = 0, end = this.length) {
     const length = this.length;
-    
     const normalizedStart = start < 0 ? Math.max(length + start, 0) : Math.min(start, length);
     const normalizedEnd = end < 0 ? Math.max(length + end, 0) : Math.min(end, length);
-    
     const result = [];
     
     for (let i = normalizedStart; i < normalizedEnd; i++) {
@@ -428,17 +418,11 @@ const rebuildImplementations = {
 };`,
 
     'some': `Array.prototype.some2 = function(callback, thisArg) {
-    if (typeof callback !== 'function') {
-        throw new TypeError('callback must be a function');
-    }
-    
     const length = this.length;
     
     for (let i = 0; i < length; i++) {
-        if (i in this) {
-            if (callback.call(thisArg, this[i], i, this)) {
-                return true;
-            }
+        if (i in this && callback.call(thisArg, this[i], i, this)) {
+            return true;
         }
     }
     
@@ -450,17 +434,17 @@ const rebuildImplementations = {
     
     if (length <= 1) return this;
     
-    const compare = compareFunction || ((a, b) => {
-        const aString = String(a);
-        const bString = String(b);
-        if (aString < bString) return -1;
-        if (aString > bString) return 1;
-        return 0;
-    });
-    
     for (let i = 0; i < length - 1; i++) {
         for (let j = 0; j < length - 1 - i; j++) {
-            if (compare(this[j], this[j + 1]) > 0) {
+            let shouldSwap = false;
+            
+            if (compareFunction) {
+                shouldSwap = compareFunction(this[j], this[j + 1]) > 0;
+            } else {
+                shouldSwap = String(this[j]) > String(this[j + 1]);
+            }
+            
+            if (shouldSwap) {
                 const temp = this[j];
                 this[j] = this[j + 1];
                 this[j + 1] = temp;
@@ -475,7 +459,6 @@ const rebuildImplementations = {
     const length = this.length;
     const actualStart = start < 0 ? Math.max(length + start, 0) : Math.min(start, length);
     const actualDeleteCount = Math.max(0, Math.min(deleteCount, length - actualStart));
-    
     const deletedElements = [];
     
     for (let i = 0; i < actualDeleteCount; i++) {
@@ -505,9 +488,10 @@ const rebuildImplementations = {
 };`,
 
     'toReversed': `Array.prototype.toReversed2 = function() {
+    const length = this.length;
     const result = [];
     
-    for (let i = this.length - 1; i >= 0; i--) {
+    for (let i = length - 1; i >= 0; i--) {
         if (i in this) {
             result[result.length] = this[i];
         }
@@ -517,9 +501,10 @@ const rebuildImplementations = {
 };`,
 
     'toSorted': `Array.prototype.toSorted2 = function(compareFunction) {
+    const length = this.length;
     const result = [];
     
-    for (let i = 0; i < this.length; i++) {
+    for (let i = 0; i < length; i++) {
         if (i in this) {
             result[i] = this[i];
         }
@@ -529,9 +514,10 @@ const rebuildImplementations = {
 };`,
 
     'toSpliced': `Array.prototype.toSpliced2 = function(start, deleteCount = this.length - start, ...items) {
+    const length = this.length;
     const result = [];
     
-    for (let i = 0; i < this.length; i++) {
+    for (let i = 0; i < length; i++) {
         if (i in this) {
             result[i] = this[i];
         }
@@ -543,10 +529,10 @@ const rebuildImplementations = {
 };`,
 
     'unshift': `Array.prototype.unshift2 = function(...elements) {
+    const length = this.length;
     const elementsLength = elements.length;
-    const currentLength = this.length;
     
-    for (let i = currentLength - 1; i >= 0; i--) {
+    for (let i = length - 1; i >= 0; i--) {
         this[i + elementsLength] = this[i];
     }
     
@@ -554,19 +540,18 @@ const rebuildImplementations = {
         this[i] = elements[i];
     }
     
-    this.length = currentLength + elementsLength;
+    this.length = length + elementsLength;
     return this.length;
 };`,
 
     'values': `Array.prototype.values2 = function() {
-    const arr = this;
+    const length = this.length;
     let index = 0;
     
     return {
-        [Symbol.iterator]() { return this; },
         next() {
-            if (index < arr.length) {
-                return { value: arr[index++], done: false };
+            if (index < length) {
+                return { value: this[index++], done: false };
             }
             return { done: true };
         }
