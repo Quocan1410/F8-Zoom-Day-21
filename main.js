@@ -1,35 +1,14 @@
 const rebuildImplementations = {
     'at': `Array.prototype.at2 = function(index) {
-    const length = this.length;
-    
-    if (index < 0) {
-        index = length + index;
-    }
-    
-    if (index < 0 || index >= length) {
-        return undefined;
-    }
-    
-    return this[index];
+    index = index < 0 ? this.length + index : index;
+    return index >= 0 && index < this.length ? this[index] : undefined;
 };`,
 
     'concat': `Array.prototype.concat2 = function(...args) {
-    const result = [];
-    
-    for (let i = 0; i < this.length; i++) {
-        result[result.length] = this[i];
-    }
-    
+    const result = [...this];
     for (const arg of args) {
-        if (Array.isArray(arg)) {
-            for (let i = 0; i < arg.length; i++) {
-                result[result.length] = arg[i];
-            }
-        } else {
-            result[result.length] = arg;
-        }
+        Array.isArray(arg) ? result.push(...arg) : result.push(arg);
     }
-    
     return result;
 };`,
 
@@ -56,18 +35,11 @@ const rebuildImplementations = {
 };`,
 
     'entries': `Array.prototype.entries2 = function() {
-    const arr = this;
-    let index = 0;
-    
-    return {
-        [Symbol.iterator]() { return this; },
-        next() {
-            if (index < arr.length) {
-                return { value: [index, arr[index++]], done: false };
-            }
-            return { done: true };
-        }
-    };
+    const result = [];
+    for (let i = 0; i < this.length; i++) {
+        result[i] = [i, this[i]];
+    }
+    return result;
 };`,
 
     'every': `Array.prototype.every2 = function(callback, thisArg) {
@@ -75,29 +47,22 @@ const rebuildImplementations = {
         throw new TypeError('callback must be a function');
     }
     
-    const length = this.length;
-    
-    for (let i = 0; i < length; i++) {
-        if (i in this) {
-            if (!callback.call(thisArg, this[i], i, this)) {
-                return false;
-            }
+    for (let i = 0; i < this.length; i++) {
+        if (i in this && !callback.call(thisArg, this[i], i, this)) {
+            return false;
         }
     }
-    
     return true;
 };`,
 
     'fill': `Array.prototype.fill2 = function(value, start = 0, end = this.length) {
-    const length = this.length;
+    const len = this.length;
+    const from = start < 0 ? Math.max(len + start, 0) : Math.min(start, len);
+    const to = end < 0 ? Math.max(len + end, 0) : Math.min(end, len);
     
-    const normalizedStart = start < 0 ? Math.max(length + start, 0) : Math.min(start, length);
-    const normalizedEnd = end < 0 ? Math.max(length + end, 0) : Math.min(end, length);
-    
-    for (let i = normalizedStart; i < normalizedEnd; i++) {
+    for (let i = from; i < to; i++) {
         this[i] = value;
     }
-    
     return this;
 };`,
 
@@ -107,16 +72,11 @@ const rebuildImplementations = {
     }
     
     const result = [];
-    const length = this.length;
-    
-    for (let i = 0; i < length; i++) {
-        if (i in this) {
-            if (callback.call(thisArg, this[i], i, this)) {
-                result[result.length] = this[i];
-            }
+    for (let i = 0; i < this.length; i++) {
+        if (i in this && callback.call(thisArg, this[i], i, this)) {
+            result.push(this[i]);
         }
     }
-    
     return result;
 };`,
 
@@ -125,16 +85,11 @@ const rebuildImplementations = {
         throw new TypeError('callback must be a function');
     }
     
-    const length = this.length;
-    
-    for (let i = 0; i < length; i++) {
-        if (i in this) {
-            if (callback.call(thisArg, this[i], i, this)) {
-                return this[i];
-            }
+    for (let i = 0; i < this.length; i++) {
+        if (i in this && callback.call(thisArg, this[i], i, this)) {
+            return this[i];
         }
     }
-    
     return undefined;
 };`,
 
@@ -143,16 +98,11 @@ const rebuildImplementations = {
         throw new TypeError('callback must be a function');
     }
     
-    const length = this.length;
-    
-    for (let i = 0; i < length; i++) {
-        if (i in this) {
-            if (callback.call(thisArg, this[i], i, this)) {
-                return i;
-            }
+    for (let i = 0; i < this.length; i++) {
+        if (i in this && callback.call(thisArg, this[i], i, this)) {
+            return i;
         }
     }
-    
     return -1;
 };`,
 
@@ -161,16 +111,11 @@ const rebuildImplementations = {
         throw new TypeError('callback must be a function');
     }
     
-    const length = this.length;
-    
-    for (let i = length - 1; i >= 0; i--) {
-        if (i in this) {
-            if (callback.call(thisArg, this[i], i, this)) {
-                return this[i];
-            }
+    for (let i = this.length - 1; i >= 0; i--) {
+        if (i in this && callback.call(thisArg, this[i], i, this)) {
+            return this[i];
         }
     }
-    
     return undefined;
 };`,
 
@@ -179,38 +124,29 @@ const rebuildImplementations = {
         throw new TypeError('callback must be a function');
     }
     
-    const length = this.length;
-    
-    for (let i = length - 1; i >= 0; i--) {
-        if (i in this) {
-            if (callback.call(thisArg, this[i], i, this)) {
-                return i;
-            }
+    for (let i = this.length - 1; i >= 0; i--) {
+        if (i in this && callback.call(thisArg, this[i], i, this)) {
+            return i;
         }
     }
-    
     return -1;
 };`,
 
     'flat': `Array.prototype.flat2 = function(depth = 1) {
-    const flatten = (arr, currentDepth) => {
+    const flatten = (arr, d) => {
         const result = [];
-        
         for (let i = 0; i < arr.length; i++) {
             if (i in arr) {
-                if (Array.isArray(arr[i]) && currentDepth > 0) {
-                    result.push(...flatten(arr[i], currentDepth - 1));
-                } else {
-                    result.push(arr[i]);
-                }
+                Array.isArray(arr[i]) && d > 0 
+                    ? result.push(...flatten(arr[i], d - 1))
+                    : result.push(arr[i]);
             }
         }
-        
         return result;
     };
     
     return flatten(this, depth === Infinity ? Number.MAX_SAFE_INTEGER : depth);
-};`,
+}`,
 
     'flatMap': `Array.prototype.flatMap2 = function(callback, thisArg) {
     if (typeof callback !== 'function') {
@@ -1596,23 +1532,8 @@ let methodValidationStatus = {};
 
 function initializeApplication() {
     currentSelectedMethod = 0;
-    hideLoadingStates();
     renderMethodsList();
     renderExerciseDisplay();
-}
-
-function hideLoadingStates() {
-    const methodsLoading = document.getElementById('methods-loading');
-    const exerciseLoading = document.getElementById('exercise-loading');
-    
-    if (methodsLoading) {
-        methodsLoading.style.display = 'none';
-        methodsLoading.remove();
-    }
-    if (exerciseLoading) {
-        exerciseLoading.style.display = 'none';
-        exerciseLoading.remove();
-    }
 }
 
 function renderMethodsList() {
@@ -1745,12 +1666,10 @@ function renderExerciseDisplay() {
                     </div>
                 </div>
                 
-                <!-- Container 2 cột -->
                 <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                    <!-- Cột 1: Phương thức rebuild -->
                     <div class="comparison-column p-5 bg-gray-50 rounded-lg border border-gray-200 flex flex-col h-full">
                         <div class="method-name-display text-center mb-3">
-                            <span class="text-2xl font-bold text-blue-600">${rebuildMethodName}</span>
+                            <span class="text-2xl font-bold text-white">${rebuildMethodName}</span>
                         </div>
                         
                         <div class="code-section mb-4 flex-grow">
@@ -1769,11 +1688,9 @@ function renderExerciseDisplay() {
                             </div>
                         </div>
                     </div>
-                    
-                    <!-- Cột 2: Phương thức gốc -->
                     <div class="comparison-column p-5 bg-gray-50 rounded-lg border border-gray-200 flex flex-col h-full">
                         <div class="method-name-display text-center mb-3">
-                            <span class="text-2xl font-bold text-green-600">${selectedMethodData.methodName}</span>
+                            <span class="text-2xl font-bold text-white">${selectedMethodData.methodName}</span>
                         </div>
                         
                         <div class="code-section mb-4 flex-grow">
@@ -1801,9 +1718,9 @@ function renderExerciseDisplay() {
         <div class="exercise-content">
             <div class="mb-6">
                 <h3 class="text-xl font-bold mb-2 flex items-center gap-2">
-                    <span class="text-blue-600">${rebuildMethodName}</span>
+                    <span class="text-white">${rebuildMethodName}</span>
                     <span class="text-gray-400">vs</span>
-                    <span class="text-gray-700">${selectedMethodData.methodName}</span>
+                    <span class="text-white font-bold">${selectedMethodData.methodName}</span>
                     <span class="text-gray-400 mx-3">-</span>
                     <span class="method-description text-gray-600 text-lg font-normal leading-none">
                         ${selectedMethodData.methodDescription}
@@ -1831,11 +1748,7 @@ function tryInitialization() {
     return false;
 }
 
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', tryInitialization);
-} else {
-    tryInitialization();
-}
+document.addEventListener('DOMContentLoaded', tryInitialization);
 
 window.addEventListener('load', function() {
     setTimeout(tryInitialization, 50);

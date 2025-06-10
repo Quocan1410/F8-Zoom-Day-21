@@ -410,12 +410,8 @@ header {
     border-bottom-color: var(--border-primary) !important;
 }
 
-[data-theme="dark"] .method-name-display .text-blue-600 {
-    color: #60a5fa !important;
-}
-
-[data-theme="dark"] .method-name-display .text-green-600 {
-    color: #4ade80 !important;
+[data-theme="dark"] .method-name-display .text-white {
+    color: #ffffff !important;
 }
 
 
